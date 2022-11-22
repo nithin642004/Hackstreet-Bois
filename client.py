@@ -22,7 +22,7 @@ client_socket.setblocking(False)
 
 currvalup = "00"
 def auth():
-    todo = input("type LOGIN to login or SIGNUP to register: ")
+    todo = input("Type LOGIN to login or SIGNUP to register: ")
     if (todo == "LOGIN"):
         my_username = input("Username: ")
         username = my_username.encode('utf-8')
@@ -35,7 +35,7 @@ def auth():
         return tup
     elif (todo == "SIGNUP"):
         usrnm = input("Choose Username: ")
-        psswd = getpass.getpass("Choose Password (greater than 8 characters): ")
+        psswd = input("Choose Password (greater than 8 characters): ")
         while (len(psswd)<8):
             psswd = getpass.getpass("Please choose a password with 8 or more characters: ")
         secans = input("Your favorite song(this is a security question): ")
@@ -107,9 +107,9 @@ def sending(HEADER_LENGTH):
                         message = input("image name or @#@EXIT@#@ to withdraw: ")
                         if message == "@#@EXIT@#@":
                             continue
-                        with open(message, "rb") as image:
-                            f = image.read()
                         if message:
+                            with open(message, "rb") as image:
+                                f = image.read()
                             message = (f, "@image@")
                             message = (message, f_uname)
                             message = pickle.dumps(message)
@@ -150,7 +150,7 @@ def sending(HEADER_LENGTH):
                             if(nori == "text"):
                                 print("type @#@EXIT@#@ to stop sending text messages")
                                 while True:
-                                    message = input("message > ")
+                                    message = input()
                                     if message == "@#@EXIT@#@":
                                         break
                                     elif message:
@@ -163,12 +163,13 @@ def sending(HEADER_LENGTH):
                             elif(nori == "image"):
                                 message = input("image name or @#@EXIT@#@ to withdraw: ")
                                 if message == "@#@EXIT@#@":
-                                    continue
-                                with open(message, "rb") as image:
-                                    f = image.read()   
+                                    continue   
                                 if message:
-                                    message = (f, "@image@")
+                                    with open(message, "rb") as image:
+                                        f = image.read()
+                                    message = (f, "@image@") 
                                     message = (message, g_name)
+                                    message = (message, "GROUP_MESSAGE")
                                     message = pickle.dumps(message)
                                     message_header = bytes(f"{len(message) :<{HEADER_LENGTH}}", 'utf-8')
                                     client_socket.send(message_header + message)
@@ -176,8 +177,6 @@ def sending(HEADER_LENGTH):
                                 break
                             else:
                                 print("Wrong input :(")
-                
-
                 
                     elif (wtd == "2"):
                         message = (g_name, "gManipl")
@@ -238,7 +237,9 @@ def receiving(HEADER_LENGTH):
                         tbp = (f"{tbp_u} > {tbp_m}")
                         print(tbp)
                     elif (message[1] == "@image@"):
-                        with open(f"{datetime.datetime.now()}.png", "wb") as file:
+                        name = f"{datetime.datetime.now()}"
+                        with open(f"{name}.png", "wb") as file:
+                            print("image received as " + name)
                             file.write(message[0])
                 else:
                     message = client_socket.recv(message_length).decode('utf-8')
