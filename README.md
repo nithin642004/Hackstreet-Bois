@@ -97,7 +97,7 @@ Python3 client.py
 
 ## Team Members Contribution
 
-Members: Mohith, Nithin and Adhitya
+Members: Mohit, Nithin and Adhitya
 
 Most of the work we have done in team and helped each other
 
