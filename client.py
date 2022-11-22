@@ -21,7 +21,9 @@ client_socket.connect((IP, PORT))
 client_socket.setblocking(False)
 
 currvalup = "00"
+username=""
 def auth():
+    global username
     todo = input("Type LOGIN to login or SIGNUP to register: ")
     if (todo == "LOGIN"):
         my_username = input("Username: ")
@@ -31,38 +33,28 @@ def auth():
         data=pickle.dumps(data)
         data_header = bytes(f"{len(data) :<{HEADER_LENGTH}}", 'utf-8')
         client_socket.send(data_header + data)
-        tup = (username, True)
-        return tup
+
     elif (todo == "SIGNUP"):
         usrnm = input("Choose Username: ")
         psswd = input("Choose Password (greater than 8 characters): ")
         while (len(psswd)<8):
-            psswd = getpass.getpass("Please choose a password with 8 or more characters: ")
-        secans = input("Your favorite song(this is a security question): ")
-        data = ("SIGNUP", usrnm, psswd, secans)
+            psswd = input("Please choose a password with 8 or more characters: ")
+        data = ("SIGNUP", usrnm, psswd)
         data = pickle.dumps(data)
         data_header = bytes(f"{len(data) :<{HEADER_LENGTH}}", 'utf-8')
         client_socket.send(data_header + data)
-        tup = (usrnm, True)
-        return tup
+
     else:
         print("Wrong input :(")
-        tup = ("", False)
-        return tup
+        auth()
 
-a = auth()
-username = a[0]
-b = a[1]
-while not b:
-    a = auth()
-    username = a[0]
-    b = a[1]
-
+auth()
 def colors_256(stri, id):
     num1 = str(hash(id)%100)
     return(f"\033[38;5;{num1}m{stri}\033[0;0m")
 
 def grp(grp_name, listofpart):
+    global username
     Name = {}
     Name["GROUP_NAME"] = grp_name
     Name["Admin"] = username.decode('utf-8')
@@ -72,7 +64,7 @@ def grp(grp_name, listofpart):
 
 def sending(HEADER_LENGTH):
     global currvalup
-    time.sleep(0.1)
+    time.sleep(0.01)
     while True:
         print("Choose one of the actions:\n"+"  1-ENTER A PERSONAL CHAT\n"+"  2-CREATE A GROUP\n"+"  3-ENTER A GROUP CHAT\n"+"  4-PRINT LIST OF CHATS\n")
         input_command = input()
@@ -107,9 +99,9 @@ def sending(HEADER_LENGTH):
                         message = input("image name or @#@EXIT@#@ to withdraw: ")
                         if message == "@#@EXIT@#@":
                             continue
+                        with open(message, "rb") as image:
+                            f = image.read()
                         if message:
-                            with open(message, "rb") as image:
-                                f = image.read()
                             message = (f, "@image@")
                             message = (message, f_uname)
                             message = pickle.dumps(message)
@@ -163,13 +155,12 @@ def sending(HEADER_LENGTH):
                             elif(nori == "image"):
                                 message = input("image name or @#@EXIT@#@ to withdraw: ")
                                 if message == "@#@EXIT@#@":
-                                    continue   
+                                    continue
+                                with open(message, "rb") as image:
+                                    f = image.read()   
                                 if message:
-                                    with open(message, "rb") as image:
-                                        f = image.read()
-                                    message = (f, "@image@") 
+                                    message = (f, "@image@")
                                     message = (message, g_name)
-                                    message = (message, "GROUP_MESSAGE")
                                     message = pickle.dumps(message)
                                     message_header = bytes(f"{len(message) :<{HEADER_LENGTH}}", 'utf-8')
                                     client_socket.send(message_header + message)
@@ -225,27 +216,26 @@ def receiving(HEADER_LENGTH):
                     sys.exit()
 
                 username_length = int(username_header.decode('utf-8').strip())
-                username = client_socket.recv(username_length).decode('utf-8')
+                username2 = client_socket.recv(username_length).decode('utf-8')
 
                 message_header = client_socket.recv(HEADER_LENGTH)
                 message_length = int(message_header.decode('utf-8').strip())
-                if(username != "SERVER"):
+                if(username2 != "SERVER"):
                     message = pickle.loads(client_socket.recv(message_length))
                     if (message[1] == "@text@"):
-                        tbp_u = colors_256(username, username)
-                        tbp_m = colors_256(message[0], username)
+                        tbp_u = colors_256(username2, username2)
+                        tbp_m = colors_256(message[0], username2)
                         tbp = (f"{tbp_u} > {tbp_m}")
                         print(tbp)
                     elif (message[1] == "@image@"):
-                        name = f"{datetime.datetime.now()}"
-                        with open(f"{name}.png", "wb") as file:
-                            print("image received as " + name)
+                        with open(f"{datetime.datetime.now()}.png", "wb") as file:
                             file.write(message[0])
                 else:
                     message = client_socket.recv(message_length).decode('utf-8')
                     currvalup = message
-                    tbp = colors_256(message, username)
-                    print(tbp)
+                    tbp = colors_256(message, username2)
+                    if(message!="10" and message != "11"):
+                        print(tbp)
 
         except IOError as e:
             if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
