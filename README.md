@@ -30,7 +30,7 @@ Our FastChat project is currently under progress. We have done the chatting part
 python3 server.py
 ```
 
-For Login/Signup..
+### For Login/Signup..
 
 - client:
 ```sh
@@ -38,66 +38,73 @@ python3 client.py
 # Enter the username and password
 ```
 
-<img src="login.png" width=70%>
+In case of successful login/signup, the program will show the available clients and groups 
 
-For Personal Chat between two persons...
+<!-- <img src="login.png" width=70%> -->
+
+### For Personal Chat between two persons...
+
+Our program can send both text messages and images. 
 
 ```sh
 Python3 client.py
 # Login/Signup
-# Input: 1
+# Input: @#@ENTER A PERSONAL CHAT@#@
 # Input: Person name
-# Input: text/image
+# For text:
+#   Input: message
+# For Image:
+#   Input: -1
+#   Input: path to image
 # For leaving
-#   Input: @#@EXIT@#@
+#   Input: @#@EXIT THIS CHAT-ROOM@#@
 ```
+<!-- <img src="person.png" width=90%> -->
 
-<img src="person.png" width=90%>
+If the receiver is offline then the message is stored in the database.
 
-
-For Group Creation...
+### For Group Creation...
 
 ```sh
 Python3 client.py
 # Login/Signup
-# Input: 2
+# Input: @#@CREATE A GROUP@#@
 # Input: Group name
 # Input: Participant names
 # Input: -1 to stop
 ```
 
-<img src="grpcreate.png" width=40%>
+<!-- <img src="grpcreate.png" width=40%> -->
 
 
-For Group Chat...
+### For Group Chat...
 
 ```sh
 Python3 client.py
 # Login/Signup
-# Input: 3
+# Input: @#@ENTER A GROUP CHAT@#@
 # Input: Group name
 # For Chatting
-#   Input: 1
-#   Input: text/image
+#   Input: @#@message@#@
 #   Input: Messages
-#   Input: @#@EXIT@#@ to stop
+#   Input: @#@EXIT THIS CHAT-ROOM@#@ to stop
 # For Adding a participant
-#   Input: 2
+#   Input: @#@Add a participant@#@
 #   Output(if not an admin): Only admin can add/remove partipants
 #   Input: Participant name
 # For Removing a participant
-#   Input: 3
+#   Input: @#@Remove a participant@#@
 #   Output(if not an admin): Only admin can add/remove partipants
 #   Input: Participant name
 # For leaving
-#   Input: 0
+#   Input: @#@EXIT THIS CHAT-ROOM@#@
 ```
 
-<img src="grpchat.png" width=50%>
+<!-- <img src="grpchat.png" width=50%> -->
 
 ## Team Members Contribution
 
-Members: Mohit, Nithin and Adhitya
+Members: Mohith, Nithin and Adhitya
 
 Most of the work we have done in team and helped each other
 
