@@ -9,9 +9,6 @@ Our FastChat project is currently under progress. We have done the chatting part
 - Creates an account for a client and allows him to login at any time.
 - Personal chat between two persons.
 - Group creation, Group chat and Admin Powers.
-
-## To Be Done
-
 - End to End Encryption of chat between Clients
 - Load Balancing of servers
 
