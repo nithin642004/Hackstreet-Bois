@@ -1,4 +1,6 @@
 import socket
+import random
+import string
 import select
 import getpass
 import errno
@@ -38,7 +40,7 @@ def grp(grp_name, listofpart):
     global username
     Name = {}
     Name["GROUP_NAME"] = grp_name
-    Name["Admin"] = username.decode("utf-8")
+    Name["Admin"] = username
     for i in range(len(listofpart)):
         Name[f"group participant {i+1}"] = listofpart[i]
     return Name
@@ -51,6 +53,8 @@ def auth():
         print(colors_256("#################### USER-LOGIN ####################", "", True))
         my_username = input("Username: ")
         username = my_username
+        with open(f"{username}.pem", "rb") as f:
+            m_key=rsa.PrivateKey.load_pkcs1(f.read())
         my_password = getpass.getpass()
         data = ("LOGIN", my_username, my_password)
         data = pickle.dumps(data)
@@ -68,9 +72,9 @@ def auth():
             confrm = getpass.getpass("Confirm password: ")
         (u_pub, u_pri) = rsa.newkeys(512)
         m_key = u_pri
-        u_pri = pickle.dumps(u_pri)
-        u_pri = encrypt(my_password,u_pri)
-        data = ("SIGNUP", my_username, my_password, u_pub, u_pri)
+        with open(f"{username}.pem", "wb") as f:
+            f.write(u_pri.save_pkcs1("PEM"))
+        data = ("SIGNUP", my_username, my_password, u_pub)
         data=pickle.dumps(data)
         data_header = bytes(f"{len(data) :<{HEADER_LENGTH}}", "utf-8")
         client_socket.send(data_header + data)
@@ -78,12 +82,14 @@ def auth():
         print("Wrong input :(")
         auth()
 
+
 auth()
 time.sleep(0.01)
 
 def sending(HEADER_LENGTH):
     global currvalup
     global f_key
+    global gf_key
     while True:
         print("Choose one of the actions:\n"+"  1-ENTER A PERSONAL CHAT\n"+"  2-CREATE A GROUP\n"+"  3-ENTER A GROUP CHAT\n"+"  4-PRINT LIST OF CHATS\n")
         input_command = input()
@@ -100,7 +106,7 @@ def sending(HEADER_LENGTH):
             if ( f_uname == "@#@EXIT@#@"):
                 continue
             elif f_uname:
-                pp = (f_uname, "PUBLIC-KEY")
+                pp = (f_uname, "PPUBLIC-KEY")
                 pp = pickle.dumps(pp)
                 pp_header = bytes(f"{len(pp) :<{HEADER_LENGTH}}", 'utf-8')
                 client_socket.send(pp_header + pp)
@@ -125,8 +131,16 @@ def sending(HEADER_LENGTH):
                         message = input("image name or @#@EXIT@#@ to withdraw: ")
                         if message == "@#@EXIT@#@":
                             continue
-                        if message:
+                        elif message:
                             f = open(message, "rb").read()
+                            N = random.randint(6,9)
+                            res = ''.join(random.choices(string.ascii_lowercase +
+                             string.digits, k=N))
+                            f = encrypt(res, f)
+                            res = res.encode('utf-8')
+                            res = rsa.encrypt(res, f_key)
+                            f = (res, f)
+                            f = pickle.dumps(f)
                             message = ("image",f)
                             message = (message, f_uname)
                             message = pickle.dumps(message)
@@ -138,6 +152,7 @@ def sending(HEADER_LENGTH):
                         print("Wrong input :(")
 
         elif input_command == "2":
+            print(colors_256("#################### CREATE-GROUP ####################", "", True))
             group_name = input("Enter group name: ")
             participants = []
             while True:
@@ -147,6 +162,10 @@ def sending(HEADER_LENGTH):
                 else:
                     participants.append(prpnt)
             group = grp(group_name, participants)
+            # (g_pub, g_pri) = rsa.newkeys(512)
+            # group = (group, (g_pub, g_pri))
+            # with open(f"{group_name}.pem", "wb") as f:
+            #     f.write(g_pri.save_pkcs1("PEM"))
             group = (group, "GROUP")
             group = pickle.dumps(group)
             group_header = bytes(f"{len(group) :<{HEADER_LENGTH}}", "utf-8")
@@ -158,6 +177,11 @@ def sending(HEADER_LENGTH):
             if g_name == "@#@EXIT@#@":
                 continue
             if g_name:
+                gp = (g_name, "GPUBLIC-KEY")
+                gp = pickle.dumps(gp)
+                gp_header = bytes(f"{len(gp) :<{HEADER_LENGTH}}", 'utf-8')
+                client_socket.send(gp_header + gp)
+                time.sleep(0.1)
                 while True:
                     print("choose one of the actions:\n" + "1-message\n" +"2-Add a Participant(for admin only)\n" + "3-Remove a Participant(for admin only)\n" + "0-EXIT")
                     wtd = input()
@@ -171,8 +195,13 @@ def sending(HEADER_LENGTH):
                                     if message == "@#@EXIT@#@":
                                         break
                                     elif message:
-                                        message = ("text",message)
-                                        message = (message, g_name)
+                                        message = message.encode('utf-8')
+                                        messag = []
+                                        for i in gf_key:
+                                            tup = (i[0], ("text", rsa.encrypt(message, i[1])))
+                                            messag.append(tup)
+                                            pass
+                                        message = (messag, g_name)
                                         message = (message, "GROUP_MESSAGE")
                                         message = pickle.dumps(message)
                                         message_header = bytes(f"{len(message) :<{HEADER_LENGTH}}", 'utf-8')
@@ -181,11 +210,18 @@ def sending(HEADER_LENGTH):
                                 message = input("image name or @#@EXIT@#@ to withdraw: ")
                                 if message == "@#@EXIT@#@":
                                     continue   
-                                if message:
-                                    with open(message, "rb") as image:
-                                        f = image.read()
-                                    message = ("image",f) 
-                                    message = (message, g_name)
+                                elif message:
+                                    f = open(message, "rb").read()
+                                    N = random.randint(6,9)
+                                    res = ''.join(random.choices(string.ascii_lowercase +
+                                        string.digits, k=N))
+                                    f = encrypt(res, f)
+                                    res = res.encode('utf-8')
+                                    messag = []
+                                    for i in gf_key:
+                                        tup = (i[0], ("image", pickle.dumps((rsa.encrypt(res, i[1]), f))))
+                                        messag.append(tup) 
+                                    message = (messag, g_name)
                                     message = (message, "GROUP_MESSAGE")
                                     message = pickle.dumps(message)
                                     message_header = bytes(f"{len(message) :<{HEADER_LENGTH}}", 'utf-8')
@@ -241,6 +277,7 @@ def receiving(HEADER_LENGTH):
     global username
     global f_key
     global m_key
+    global gf_key
     while True:
         try:
             while True:
@@ -265,19 +302,17 @@ def receiving(HEADER_LENGTH):
                         tbp = (f"{tbp_u} > {tbp_m}")
                         print(tbp)
                     elif (message[0] == "image"):
-                        print("image received as from " + username_2)
-                        print("    0-TO SAVE")
-                        print("    1-TO VIEW AND SAVE")
-                        inp = input()
-                        if(inp == "0"):
-                            pass
-                        elif(inp == "1"):
-                            name = f"{datetime.datetime.now()}"
-                            file = open(f"{name}.png", "wb")
-                            file.write(message[1])
-                            img = cv2.imread(f"{name}.png", cv2.IMREAD_ANYCOLOR)
-                            cv2.imshow(f"Image from {username_2}", img)
-                            cv2.waitKey(0)
+                        print("image received from " + username_2)
+                        name = f"image1"
+                        file = open(f"{name}.png", "wb")
+                        img_data = pickle.loads(message[1])
+                        enm = img_data[0]
+                        enm = (rsa.decrypt(enm, m_key)).decode('utf-8')
+                        imag = decrypt(enm, img_data[1])
+                        file.write(imag)
+                        img = cv2.imread(f"{name}.png", cv2.IMREAD_ANYCOLOR)
+                        cv2.imshow(f"Image from {username_2}", img)
+                        cv2.waitKey(0)
                             
                 else:
                     message = pickle.loads(client_socket.recv(message_length))
@@ -288,6 +323,8 @@ def receiving(HEADER_LENGTH):
                         f_key = message[0]
                     elif (message[1] == "adm-data"):
                         currvalup = message[0]
+                    elif (message[1] == "gkey-data"):
+                        gf_key = message[0]
                     
         except IOError as e:
             if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
